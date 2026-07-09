@@ -1,4 +1,5 @@
 load("@bazel_lib//lib:transitions.bzl", "platform_transition_filegroup")
+load("//:release_archive.bzl", "release_archive")
 
 [
     platform_transition_filegroup(
@@ -25,6 +26,34 @@ filegroup(
         ":for_x86_64-apple-darwin",
         ":for_x86_64-pc-windows-msvc",
         ":for_x86_64-unknown-linux-musl",
+    ],
+)
+
+[
+    release_archive(
+        name = "bindgen_" + platform,
+        binary = ":for_" + triple,
+        binary_name = binary_name,
+    )
+    for platform, triple, binary_name in [
+        ("darwin_amd64", "x86_64-apple-darwin", "bindgen"),
+        ("darwin_arm64", "aarch64-apple-darwin", "bindgen"),
+        ("linux_amd64", "x86_64-unknown-linux-musl", "bindgen"),
+        ("linux_arm64", "aarch64-unknown-linux-musl", "bindgen"),
+        ("windows_amd64", "x86_64-pc-windows-msvc", "bindgen.exe"),
+        ("windows_arm64", "aarch64-pc-windows-msvc", "bindgen.exe"),
+    ]
+]
+
+filegroup(
+    name = "release_archives",
+    srcs = [
+        ":bindgen_darwin_amd64",
+        ":bindgen_darwin_arm64",
+        ":bindgen_linux_amd64",
+        ":bindgen_linux_arm64",
+        ":bindgen_windows_amd64",
+        ":bindgen_windows_arm64",
     ],
 )
 

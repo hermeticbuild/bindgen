@@ -10,8 +10,9 @@ and ARM64. Linux uses musl, Windows uses MSVC with the static CRT, and
 bazel build //:for_all_platforms
 ```
 
-`.github/workflows/build_release.sh` builds with remote execution and writes the
-six release executables plus `SHA256.txt`.
+`.github/workflows/build_release.sh` builds with remote execution and writes six
+maximum-compression `.tar.zst` archives plus `SHA256.txt`. Each archive contains
+one executable named `bindgen` or `bindgen.exe`.
 
 ## Use
 

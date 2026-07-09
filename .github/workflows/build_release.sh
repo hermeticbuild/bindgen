@@ -8,7 +8,7 @@ if [[ -n "${BUILDBUDDY_API_KEY:-}" ]]; then
   )
 fi
 
-bazel build "${bazel_flags[@]}" //:for_all_platforms
+bazel build "${bazel_flags[@]}" //:release_archives
 
 copy_out() {
   local source
@@ -20,19 +20,19 @@ copy_out() {
   cp -f "$source" "$2"
 }
 
-copy_out //:for_aarch64-unknown-linux-musl bindgen_linux_arm64
-copy_out //:for_x86_64-unknown-linux-musl bindgen_linux_amd64
-copy_out //:for_aarch64-apple-darwin bindgen_darwin_arm64
-copy_out //:for_x86_64-apple-darwin bindgen_darwin_amd64
-copy_out //:for_aarch64-pc-windows-msvc bindgen_windows_arm64.exe
-copy_out //:for_x86_64-pc-windows-msvc bindgen_windows_amd64.exe
+copy_out //:bindgen_darwin_amd64 bindgen_darwin_amd64.tar.zst
+copy_out //:bindgen_darwin_arm64 bindgen_darwin_arm64.tar.zst
+copy_out //:bindgen_linux_amd64 bindgen_linux_amd64.tar.zst
+copy_out //:bindgen_linux_arm64 bindgen_linux_arm64.tar.zst
+copy_out //:bindgen_windows_amd64 bindgen_windows_amd64.tar.zst
+copy_out //:bindgen_windows_arm64 bindgen_windows_arm64.tar.zst
 
 artifacts=(
-  bindgen_darwin_amd64
-  bindgen_darwin_arm64
-  bindgen_linux_amd64
-  bindgen_linux_arm64
-  bindgen_windows_amd64.exe
-  bindgen_windows_arm64.exe
+  bindgen_darwin_amd64.tar.zst
+  bindgen_darwin_arm64.tar.zst
+  bindgen_linux_amd64.tar.zst
+  bindgen_linux_arm64.tar.zst
+  bindgen_windows_amd64.tar.zst
+  bindgen_windows_arm64.tar.zst
 )
 LC_ALL=C shasum -a 256 "${artifacts[@]}" > SHA256.txt

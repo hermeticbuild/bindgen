@@ -1,0 +1,11 @@
+/bazel-*
+/target
+/bindgen_darwin_amd64
+/bindgen_darwin_arm64
+/bindgen_linux_amd64
+/bindgen_linux_arm64
+/bindgen_windows_amd64.exe
+/bindgen_windows_arm64.exe
+/SHA256.txt
+*.swp
+.DS_Store

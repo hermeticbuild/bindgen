@@ -1,0 +1,50 @@
+load("@bazel_lib//lib:transitions.bzl", "platform_transition_filegroup")
+
+[
+    platform_transition_filegroup(
+        name = "for_" + triple,
+        srcs = ["@crates//:bindgen-cli__bindgen"],
+        target_platform = "@rules_rs//rs/platforms:" + triple,
+    )
+    for triple in [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-msvc",
+        "aarch64-unknown-linux-musl",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-musl",
+    ]
+]
+
+filegroup(
+    name = "for_all_platforms",
+    srcs = [
+        ":for_aarch64-apple-darwin",
+        ":for_aarch64-pc-windows-msvc",
+        ":for_aarch64-unknown-linux-musl",
+        ":for_x86_64-apple-darwin",
+        ":for_x86_64-pc-windows-msvc",
+        ":for_x86_64-unknown-linux-musl",
+    ],
+)
+
+platform(
+    name = "local_windows_platform",
+    constraint_values = [
+        "@llvm//constraints/windows/abi:msvc",
+    ],
+    parents = ["@platforms//host"],
+)
+
+platform(
+    name = "remote_linux_platform",
+    constraint_values = [
+        "@llvm//constraints/libc:gnu.2.35",
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    exec_properties = {
+        "OSFamily": "Linux",
+        "container-image": "docker://ubuntu:22.04@sha256:0d779ea97881505f5ef0039336ee85edba27519bdba968c284c86ee066a973c8",
+    },
+)

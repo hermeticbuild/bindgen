@@ -1,0 +1,351 @@
+diff --git a/toolchain/features/thin_lto/BUILD.bazel b/toolchain/features/thin_lto/BUILD.bazel
+--- a/toolchain/features/thin_lto/BUILD.bazel
++++ b/toolchain/features/thin_lto/BUILD.bazel
+@@ -23,9 +23,22 @@ cc_args(
+         "@rules_cc//cc/toolchains/actions:cpp_compile",
+         "@rules_cc//cc/toolchains/actions:link_actions",
+     ],
+-    args = [
+-        "-flto=thin",
++    args = select({
++        "@llvm//constraints/windows/abi:msvc": [],
++        "//conditions:default": ["-flto=thin"],
++    }),
++)
++
++cc_args(
++    name = "lto_compile_flag_msvc",
++    actions = [
++        "@rules_cc//cc/toolchains/actions:c_compile",
++        "@rules_cc//cc/toolchains/actions:cpp_compile",
+     ],
++    args = select({
++        "@llvm//constraints/windows/abi:msvc": ["-flto=thin"],
++        "//conditions:default": [],
++    }),
+ )
+ 
+ cc_args(
+@@ -33,10 +46,13 @@ cc_args(
+     actions = [
+         "@rules_cc//cc/toolchains/actions:compile_actions",
+     ],
+-    args = [
+-        "-Xclang",
+-        "-fthin-link-bitcode={lto_indexing_bitcode_file}",
+-    ],
++    args = select({
++        "@llvm//constraints/windows/abi:msvc": ["-Xclang=-fthin-link-bitcode={lto_indexing_bitcode_file}"],
++        "//conditions:default": [
++            "-Xclang",
++            "-fthin-link-bitcode={lto_indexing_bitcode_file}",
++        ],
++    }),
+     format = {
+         "lto_indexing_bitcode_file": "@rules_cc//cc/toolchains/variables:lto_indexing_bitcode_file",
+     },
+@@ -49,6 +65,8 @@ cc_args(
+         ":lto_index_actions",
+     ],
+     args = select({
++        "@llvm//constraints/windows/abi:msvc": ["/thinlto-index-only:{thinlto_indexing_param_file}"],
+         "@platforms//os:macos": ["-Wl,--thinlto-index-only={thinlto_indexing_param_file}"],
+-        "@platforms//os:windows": ["-Wl,--thinlto-index-only={thinlto_indexing_param_file}"],
++        "@llvm//constraints/windows/abi:gnu": ["-Wl,--thinlto-index-only={thinlto_indexing_param_file}"],
++        "@llvm//constraints/windows/abi:gnullvm": ["-Wl,--thinlto-index-only={thinlto_indexing_param_file}"],
+         "//conditions:default": ["-Wl,-plugin-opt,thinlto-index-only={thinlto_indexing_param_file}"],
+@@ -65,6 +83,8 @@ cc_args(
+         ":lto_index_actions",
+     ],
+     args = select({
++        "@llvm//constraints/windows/abi:msvc": ["/thinlto-emit-imports-files"],
+         "@platforms//os:macos": ["-Wl,--thinlto-emit-imports-files"],
+-        "@platforms//os:windows": ["-Wl,--thinlto-emit-imports-files"],
++        "@llvm//constraints/windows/abi:gnu": ["-Wl,--thinlto-emit-imports-files"],
++        "@llvm//constraints/windows/abi:gnullvm": ["-Wl,--thinlto-emit-imports-files"],
+         "//conditions:default": ["-Wl,-plugin-opt,thinlto-emit-imports-files"],
+@@ -77,6 +97,8 @@ cc_args(
+         ":lto_index_actions",
+     ],
+     args = select({
++        "@llvm//constraints/windows/abi:msvc": ["/thinlto-prefix-replace:{thinlto_prefix_replace}"],
+         "@platforms//os:macos": ["-Wl,--thinlto-prefix-replace={thinlto_prefix_replace}"],
+-        "@platforms//os:windows": ["-Wl,--thinlto-prefix-replace={thinlto_prefix_replace}"],
++        "@llvm//constraints/windows/abi:gnu": ["-Wl,--thinlto-prefix-replace={thinlto_prefix_replace}"],
++        "@llvm//constraints/windows/abi:gnullvm": ["-Wl,--thinlto-prefix-replace={thinlto_prefix_replace}"],
+         "//conditions:default": ["-Wl,-plugin-opt,thinlto-prefix-replace={thinlto_prefix_replace}"],
+@@ -93,6 +115,8 @@ cc_args(
+         ":lto_index_actions",
+     ],
+     args = select({
++        "@llvm//constraints/windows/abi:msvc": ["/thinlto-object-suffix-replace:{thinlto_object_suffix_replace}"],
+         "@platforms//os:macos": ["-Wl,--thinlto-object-suffix-replace={thinlto_object_suffix_replace}"],
+-        "@platforms//os:windows": ["-Wl,--thinlto-object-suffix-replace={thinlto_object_suffix_replace}"],
++        "@llvm//constraints/windows/abi:gnu": ["-Wl,--thinlto-object-suffix-replace={thinlto_object_suffix_replace}"],
++        "@llvm//constraints/windows/abi:gnullvm": ["-Wl,--thinlto-object-suffix-replace={thinlto_object_suffix_replace}"],
+         "//conditions:default": ["-Wl,-plugin-opt,thinlto-object-suffix-replace={thinlto_object_suffix_replace}"],
+@@ -109,6 +133,8 @@ cc_args(
+         ":lto_index_actions",
+     ],
+     args = select({
++        "@llvm//constraints/windows/abi:msvc": ["/lto-obj-path:{thinlto_merged_object_file}"],
+         "@platforms//os:macos": ["-Wl,--lto-obj-path={thinlto_merged_object_file}"],
+-        "@platforms//os:windows": ["-Wl,/lto-obj-path:{thinlto_merged_object_file}"],
++        "@llvm//constraints/windows/abi:gnu": ["-Wl,/lto-obj-path:{thinlto_merged_object_file}"],
++        "@llvm//constraints/windows/abi:gnullvm": ["-Wl,/lto-obj-path:{thinlto_merged_object_file}"],
+         "//conditions:default": ["-Wl,-plugin-opt,obj-path={thinlto_merged_object_file}"],
+@@ -184,6 +210,7 @@ cc_feature(
+     name = "feature",
+     args = [
+         ":lto_flag",
++        ":lto_compile_flag_msvc",
+         ":indexing_bitcode_file_flags",
+         ":merged_object_file_flags",
+         ":index_flags",
+diff --git a/toolchain/bootstrap/declare_toolchains.bzl b/toolchain/bootstrap/declare_toolchains.bzl
+--- a/toolchain/bootstrap/declare_toolchains.bzl
++++ b/toolchain/bootstrap/declare_toolchains.bzl
+@@ -198,7 +198,7 @@ def declare_tool_map(exec_os, exec_cpu, prefix = None, fdo_profile = None, fdo_i
+ 
+     bootstrap_binary(
+         name = prefix + "/bin/clang-cl",
+-        platform = prefix + "_platform",
++        platform = platform_name,
+         actual = "@llvm-project//llvm:llvm.stripped",
+         # Copy instead of symlink so clang's InstalledDir matches the packaged tree.
+         symlink = False,
+@@ -301,7 +301,7 @@ def declare_tool_map(exec_os, exec_cpu, prefix = None, fdo_profile = None, fdo_i
+ 
+     bootstrap_binary(
+         name = prefix + "/bin/lld-link",
+-        platform = prefix + "_platform",
++        platform = platform_name,
+         actual = "@llvm-project//llvm:llvm.stripped",
+     )
+ 
+@@ -442,8 +442,8 @@ def declare_toolchains(*, execs = None, targets = SUPPORTED_TARGETS):
+                     "@llvm//toolchain:macos_complete_with_libtool": ":%s/tools_with_dsym_and_libtool" % tool_prefix,
+                     "@llvm//toolchain:macos_complete": ":%s/tools_with_dsym" % tool_prefix,
+                     "@rules_cc//cc/toolchains/args/archiver_flags:use_libtool_on_apple_setting": ":%s/tools_with_libtool_for_runtime" % tool_prefix,
+-                    "@llvm//platforms/config:windows_x86_64_msvc": ":%s_%s/tools_for_msvc_for_runtime" % (exec_os, exec_cpu),
+-                    "@llvm//platforms/config:windows_aarch64_msvc": ":%s_%s/tools_for_msvc_for_runtime" % (exec_os, exec_cpu),
++                    "@llvm//platforms/config:windows_x86_64_msvc": ":%s/tools_for_msvc_for_runtime" % tool_prefix,
++                    "@llvm//platforms/config:windows_aarch64_msvc": ":%s/tools_for_msvc_for_runtime" % tool_prefix,
+                     "//conditions:default": ":%s/default_tools_for_runtime" % tool_prefix,
+                 }),
+             )
+diff --git a/toolchain/bootstrap/transition_settings.bzl b/toolchain/bootstrap/transition_settings.bzl
+--- a/toolchain/bootstrap/transition_settings.bzl
++++ b/toolchain/bootstrap/transition_settings.bzl
+@@ -8,11 +8,9 @@ LLVM_TOOLS = ([
+     "clangd",
+ ] if int(LLVM_VERSION_MAJOR) >= 22 else []) + [
+     "clang",
+-    "clang-cl",
+     "clang-scan-deps",
+     "dsymutil",
+     "lld",
+-    "lld-link",
+     "llvm-ar",
+     "llvm-cgdata",
+     "llvm-cov",
+diff --git a/toolchain/features/legacy/BUILD.bazel b/toolchain/features/legacy/BUILD.bazel
+--- a/toolchain/features/legacy/BUILD.bazel
++++ b/toolchain/features/legacy/BUILD.bazel
+@@ -440,8 +440,18 @@ cc_feature(
+     overrides = "@rules_cc//cc/toolchains/features/legacy:random_seed",
+ )
+ 
++cc_args(
++    name = "strip_debug_symbols_args_msvc",
++    actions = [
++        "@rules_cc//cc/toolchains/actions:link_actions",
++    ],
++    args = ["/DEBUG:NONE"],
++    requires_not_none = "@rules_cc//cc/toolchains/variables:strip_debug_symbols",
++)
++
+ cc_feature(
+     name = "strip_debug_symbols_msvc",
++    args = [":strip_debug_symbols_args_msvc"],
+     overrides = "@rules_cc//cc/toolchains/features/legacy:strip_debug_symbols",
+ )
+ 
+@@ -500,12 +510,9 @@ cc_feature_set(
+             ":static_libgcc",
+         ],
+         "//conditions:default": [],
+-    }) + select({
+-        "@platforms//os:windows": [],
+-        "//conditions:default": [
+-            ":supports_start_end_lib",
+-        ],
+-    }),
++    }) + [
++        ":supports_start_end_lib",
++    ],
+     visibility = ["//visibility:public"],
+ )
+ 
+diff --git a/toolchain/cc_toolchain.bzl b/toolchain/cc_toolchain.bzl
+--- a/toolchain/cc_toolchain.bzl
++++ b/toolchain/cc_toolchain.bzl
+@@ -44,10 +44,20 @@ def cc_toolchain(name, tool_map, module_map = None, extra_args = []):
+             "@platforms//os:windows": [
+                 "@llvm//toolchain/features:static_link_cpp_runtimes",
+                 "@llvm//toolchain/features/runtime_library_search_directories:feature",
+-                "@rules_cc//cc/toolchains/args/def_file:def_file",
+                 "@llvm//toolchain/features:targets_windows",
+             ],
+             "@platforms//os:none": [],
++        }) + select({
++            "@llvm//constraints/windows/abi:gnu": [
++                "@rules_cc//cc/toolchains/args/def_file:def_file",
++            ],
++            "@llvm//constraints/windows/abi:gnullvm": [
++                "@rules_cc//cc/toolchains/args/def_file:def_file",
++            ],
++            "@llvm//constraints/windows/abi:msvc": [
++                "@llvm//toolchain/features:def_file_msvc",
++            ],
++            "//conditions:default": [],
+         }) + select({
+             "@llvm//constraints/windows/abi:msvc": [],
+             "//conditions:default": [
+diff --git a/toolchain/features/BUILD.bazel b/toolchain/features/BUILD.bazel
+--- a/toolchain/features/BUILD.bazel
++++ b/toolchain/features/BUILD.bazel
+@@ -76,7 +76,7 @@ cc_args(
+ cc_feature(
+     name = "def_file_msvc",
+     args = [":def_file_link_args_msvc"],
+-    overrides = "@rules_cc//cc/toolchains/args/def_file:def_file",
++    feature_name = "def_file",
+ )
+ 
+ cc_feature(
+diff --git a/runtimes/cxxstdlib/BUILD.bazel b/runtimes/cxxstdlib/BUILD.bazel
+--- a/runtimes/cxxstdlib/BUILD.bazel
++++ b/runtimes/cxxstdlib/BUILD.bazel
+@@ -50,6 +50,7 @@ alias(
+     actual = select({
+         ":libstdcxx_linux": "//runtimes/libstdcxx:headers_include_search_directory",
+         ":libstdcxx_windows": ":libstdcxx_windows_unsupported",
++        ":libcxx_windows_msvc": "@msvc_runtime//:msvc_include",
+         "//conditions:default": "@llvm-project//libcxx:libcxx_headers_include_search_directory",
+     }),
+ )
+@@ -59,6 +60,7 @@ alias(
+     actual = select({
+         ":libstdcxx_linux": "//runtimes/libstdcxx:abi_headers_include_search_directory",
+         ":libstdcxx_windows": ":libstdcxx_windows_unsupported",
++        ":libcxx_windows_msvc": "@msvc_runtime//:msvc_include",
+         "//conditions:default": "@llvm-project//libcxxabi:libcxxabi_headers_include_search_directory",
+     }),
+ )
+diff --git a/extensions/llvm_source.bzl b/extensions/llvm_source.bzl
+--- a/extensions/llvm_source.bzl
++++ b/extensions/llvm_source.bzl
+@@ -43,6 +43,8 @@ _LLVM_21_SOURCE_PATCHES = [
+ 
+ _LLVM_22_SOURCE_PATCHES = [
+     "//3rd_party/llvm-project/22.x/patches:lld-coff-thinlto-lazy-index.patch",
++    "//3rd_party/llvm-project/22.x/patches:lld-coff-thinlto-weak-alias.patch",
++    "//3rd_party/llvm-project/22.x/patches:clang-build-static-msvc.patch",
+     "//3rd_party/llvm-project/22.x/patches:llvm-link-multicall.patch",
+     "//3rd_party/llvm-project/22.x/patches:llvm-profdata-multicall.patch",
+     "//3rd_party/llvm-project/22.x/patches:clang-format-multicall.patch",
+@@ -53,5 +54,6 @@ _LLVM_22_SOURCE_PATCHES = [
+     "//3rd_party/llvm-project/22.x/patches:no_rules_python.patch",
+     "//3rd_party/llvm-project/22.x/patches:llvm-windows-stack-size.patch",
+     "//3rd_party/llvm-project/22.x/patches:libcxx-lgamma_r.patch",
+     "//3rd_party/llvm-project/22.x/patches:llvm-bazel-blake3-windows-gnu.patch",
++    "//3rd_party/llvm-project/22.x/patches:llvm-blake3-msvc.patch",
+ ] + _DEFAULT_SOURCE_PATCHES
+diff --git a/3rd_party/llvm-project/22.x/patches/clang-build-static-msvc.patch b/3rd_party/llvm-project/22.x/patches/clang-build-static-msvc.patch
+new file mode 100644
+--- /dev/null
++++ b/3rd_party/llvm-project/22.x/patches/clang-build-static-msvc.patch
+@@ -0,0 +1,15 @@
++diff --git a/utils/bazel/llvm-project-overlay/clang/BUILD.bazel b/utils/bazel/llvm-project-overlay/clang/BUILD.bazel
++--- a/utils/bazel/llvm-project-overlay/clang/BUILD.bazel
+++++ b/utils/bazel/llvm-project-overlay/clang/BUILD.bazel
++@@ -1987,6 +1987,11 @@ gentbl_cc_library(
++ )
++ 
++ cc_library(
++     name = "support",
+++    defines = select({
+++        "//llvm:is_windows_clang_cl": ["CLANG_BUILD_STATIC"],
+++        "//llvm:is_windows_msvc": ["CLANG_BUILD_STATIC"],
+++        "//conditions:default": [],
+++    }),
++     srcs = glob([
++         "lib/Support/*.cpp",
+diff --git a/3rd_party/llvm-project/22.x/patches/lld-coff-thinlto-weak-alias.patch b/3rd_party/llvm-project/22.x/patches/lld-coff-thinlto-weak-alias.patch
+new file mode 100644
+--- /dev/null
++++ b/3rd_party/llvm-project/22.x/patches/lld-coff-thinlto-weak-alias.patch
+@@ -0,0 +1,42 @@
++diff --git a/lld/COFF/LTO.h b/lld/COFF/LTO.h
++--- a/lld/COFF/LTO.h
+++++ b/lld/COFF/LTO.h
++@@ -29,6 +29,7 @@ namespace lld::coff {
++ class BitcodeFile;
++ class InputFile;
++ class COFFLinkerContext;
+++class Symbol;
++ 
++ void thinLTOCreateEmptyIndexFiles(COFFLinkerContext &ctx);
++ 
++@@ -51,5 +52,6 @@ private:
++   std::unique_ptr<llvm::raw_fd_ostream> indexFile;
++   llvm::DenseSet<StringRef> thinIndices;
+++  llvm::DenseSet<Symbol *> prevailingWeakAliases;
++ 
++   std::string getThinLTOOutputFile(StringRef path);
++   llvm::lto::Config createConfig();
++diff --git a/lld/COFF/LTO.cpp b/lld/COFF/LTO.cpp
++--- a/lld/COFF/LTO.cpp
+++++ b/lld/COFF/LTO.cpp
++@@ -199,7 +199,19 @@ void BitcodeCompiler::add(BitcodeFile &f) {
++     // flags an undefined in IR with a definition in ASM as prevailing.
++     // Once IRObjectFile is fixed to report only one symbol this hack can
++     // be removed.
++-    r.Prevailing = !objSym.isUndefined() && sym->getFile() == &f;
+++    //
+++    // COFF weak externals are represented as Undefined symbols whose
+++    // weakAlias exists only in this lld-link process. During an index-only
+++    // link, select one weak indirect definition so its backend object can
+++    // recreate the weak external for the final lld-link process.
+++    auto *u = dyn_cast<Undefined>(sym);
+++    bool prevailingWeakAlias =
+++        ctx.config.thinLTOIndexOnly && objSym.isWeak() &&
+++        objSym.isIndirect() && u && u->weakAlias &&
+++        prevailingWeakAliases.insert(sym).second;
+++
+++    r.Prevailing = !objSym.isUndefined() &&
+++                   (prevailingWeakAlias || sym->getFile() == &f);
++     r.VisibleToRegularObj = sym->isUsedInRegularObj;
++     if (r.Prevailing)
++       undefine(sym);
+diff --git a/3rd_party/llvm-project/22.x/patches/llvm-blake3-msvc.patch b/3rd_party/llvm-project/22.x/patches/llvm-blake3-msvc.patch
+new file mode 100644
+--- /dev/null
++++ b/3rd_party/llvm-project/22.x/patches/llvm-blake3-msvc.patch
+@@ -0,0 +1,15 @@
++diff --git a/utils/bazel/llvm-project-overlay/llvm/BUILD.bazel b/utils/bazel/llvm-project-overlay/llvm/BUILD.bazel
++--- a/utils/bazel/llvm-project-overlay/llvm/BUILD.bazel
+++++ b/utils/bazel/llvm-project-overlay/llvm/BUILD.bazel
++@@ -380,7 +380,9 @@ cc_library(
++         "//conditions:default": [
++             "BLAKE3_USE_NEON=0",
++         ],
++     }) + select({
++-        "@platforms//cpu:x86_64": [
+++        ":is_x86_64_windows_clang_mingw": [
+++        ],
+++        ":is_x86_64_non_windows": [
++         ],
++         "//conditions:default": [
++             "BLAKE3_NO_AVX2",

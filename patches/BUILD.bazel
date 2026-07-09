@@ -1,0 +1,6 @@
+exports_files([
+    "hermetic-llvm-msvc.patch",
+    "rules-rust-distributed-thin-lto-strip.patch",
+    "rules-rs-fixes.patch",
+    "windows-support-remote-case-aliases.patch",
+])

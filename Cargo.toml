@@ -1,0 +1,11 @@
+[package]
+name = "bindgen-prebuilt"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "empty.rs"
+
+[build-dependencies]
+bindgen-cli = { version = "=0.72.1", default-features = false, features = ["static"] }

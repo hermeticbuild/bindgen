@@ -1,0 +1,121 @@
+--- a/rust/private/rustc.bzl
++++ b/rust/private/rustc.bzl
+@@ -1684,6 +1684,52 @@
+         flags.extend(ctx.attr._extra_exec_rustc_flag[ExtraExecRustcFlagsInfo].extra_exec_rustc_flags)
+ 
+     return flags
++
++def _strip_level_from_flags(flags, strip_level):
++    """Returns the last rustc strip level in a list of command-line flags."""
++    if type(flags) != "list":
++        return strip_level
++
++    expect_codegen_option = False
++    for flag in flags:
++        if type(flag) != "string":
++            expect_codegen_option = False
++            continue
++
++        option = None
++        if expect_codegen_option:
++            option = flag
++            expect_codegen_option = False
++        elif flag in ("-C", "--codegen"):
++            expect_codegen_option = True
++        elif flag.startswith("-C"):
++            option = flag[2:]
++        elif flag.startswith("--codegen="):
++            option = flag[len("--codegen="):]
++
++        if option != None and option.startswith("strip="):
++            strip_level = option[len("strip="):]
++
++    return strip_level
++
++def _effective_strip_level(compilation_mode, rust_flags, collected_extra_flags, authored_rustc_flags):
++    """Returns the effective strip level using rustc's last-option-wins order."""
++    strip_level = compilation_mode.strip_level
++    strip_level = _strip_level_from_flags(rust_flags, strip_level)
++    strip_level = _strip_level_from_flags(collected_extra_flags, strip_level)
++    return _strip_level_from_flags(authored_rustc_flags, strip_level)
++
++def _strip_option(strip_level, target_os, target_abi, crate_type):
++    """Maps a rustc strip level to the equivalent rust-objcopy option."""
++    if strip_level == "none" or target_abi == "msvc":
++        return None
++    if strip_level == "debuginfo":
++        return "--strip-debug"
++    if strip_level == "symbols":
++        if target_os in ("darwin", "macos") and crate_type != "bin":
++            return "--discard-all"
++        return "--strip-all"
++    fail("Unsupported rustc strip level: {}".format(strip_level))
+ 
+ def setup_zself_profile(ctx, crate_info):
+     """Sets up rustc self-profiling if enabled by zself_profile_events.
+@@ -2222,6 +2268,27 @@
+             additional_linker_outputs.append(dsym_folder)
+             variables_extension["dsym_path"] = dsym_folder
+ 
++        strip_level = _effective_strip_level(
++            compilation_mode,
++            rust_flags,
++            collected_extra_flags,
++            getattr(attr, "rustc_flags", []),
++        )
++        strip_option = _strip_option(
++            strip_level,
++            rust_toolchain.target_os,
++            rust_toolchain.target_abi,
++            crate_info.type,
++        )
++        link_output = crate_info.output
++        if strip_option:
++            if not rust_toolchain.rust_objcopy:
++                fail("rust_toolchain.rust_objcopy is required to preserve strip={} with cc_common.link".format(strip_level))
++            link_output = ctx.actions.declare_file(
++                crate_info.output.basename + ".unstripped",
++                sibling = crate_info.output,
++            )
++
+         linking_outputs = cc_common.link(
+             actions = ctx.actions,
+             feature_configuration = feature_configuration,
+@@ -2230,11 +2297,36 @@
+             compilation_outputs = compilation_outputs,
+             name = output_relative_to_package,
+             stamp = attr.stamp,
+-            main_output = crate_info.output,
++            main_output = link_output,
+             output_type = "executable" if crate_info.type == "bin" else "dynamic_library",
+             additional_outputs = additional_linker_outputs,
+             variables_extension = variables_extension,
+         )
++
++        if strip_option:
++            strip_args = ctx.actions.args()
++            strip_args.add(strip_option)
++            strip_args.add(link_output)
++            strip_args.add(crate_info.output)
++            rustc_lib_dirs = depset([file.dirname for file in rust_toolchain.rustc_lib.to_list()]).to_list()
++            strip_env = dict(rust_toolchain.env)
++            if rustc_lib_dirs:
++                library_path = ":".join(rustc_lib_dirs)
++                strip_env["DYLD_LIBRARY_PATH"] = library_path
++                strip_env["LD_LIBRARY_PATH"] = library_path
++            ctx.actions.run(
++                arguments = [strip_args],
++                env = strip_env,
++                executable = rust_toolchain.rust_objcopy,
++                inputs = depset(
++                    direct = [link_output],
++                    transitive = [rust_toolchain.rustc_lib],
++                ),
++                mnemonic = "RustStrip",
++                outputs = [crate_info.output],
++                progress_message = "Stripping {} for {}".format(crate_info.output.short_path, ctx.label),
++                toolchain = toolchain,
++            )
+ 
+         if rust_toolchain.target_os == "linux" and cc_helper.should_create_per_object_debug_info(feature_configuration, ctx.fragments.cpp):
+             dwp_file = ctx.actions.declare_file(

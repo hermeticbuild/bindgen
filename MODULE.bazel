@@ -1,0 +1,92 @@
+module(name = "bindgen")
+
+bazel_dep(name = "bazel_lib", version = "3.2.2")
+bazel_dep(name = "llvm", version = "0.8.11")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_cc", version = "0.2.20")
+bazel_dep(name = "rules_rs", version = "0.0.95")
+
+# Remove after https://github.com/hermeticbuild/hermetic-llvm/pull/187 and every
+# remaining change in //patches:hermetic-llvm-msvc.patch are released.
+archive_override(
+    module_name = "llvm",
+    integrity = "sha256-Y33ZamScVnJmKsjJYtwJp1ydcDgNglw5YhRspLaDvbE=",
+    patch_strip = 1,
+    patches = ["//patches:hermetic-llvm-msvc.patch"],
+    strip_prefix = "hermetic-llvm-ef1eb169508b7f0461463c442e0e100ef575a90a",
+    urls = [
+        "https://github.com/ArchangelX360/hermetic-llvm/archive/ef1eb169508b7f0461463c442e0e100ef575a90a.tar.gz",
+    ],
+)
+
+# Make Windows SDK case aliases available to case-sensitive remote actions when
+# repository setup runs on a case-insensitive filesystem.
+single_version_override(
+    module_name = "windows_support",
+    patch_strip = 1,
+    patches = ["//patches:windows-support-remote-case-aliases.patch"],
+    version = "0.2.0",
+)
+
+single_version_override(
+    module_name = "rules_rs",
+    patch_strip = 1,
+    patches = ["//patches:rules-rs-fixes.patch"],
+    version = "0.0.95",
+)
+
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+rules_rust.patch(
+    patches = ["//patches:rules-rust-distributed-thin-lto-strip.patch"],
+    strip = 1,
+)
+use_repo(rules_rust, "rules_rust")
+
+toolchains = use_extension("@rules_rs//rs/toolchains:module_extension.bzl", "toolchains")
+toolchains.toolchain(
+    edition = "2024",
+    version = "1.96.1",
+)
+use_repo(toolchains, "default_rust_toolchains")
+
+register_toolchains("@default_rust_toolchains//:all")
+
+llvm = use_extension("@llvm//extensions:llvm.bzl", "llvm")
+use_repo(llvm, "llvm-project")
+
+crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+crate.from_cargo(
+    cargo_lock = "//:Cargo.lock",
+    cargo_toml = "//:Cargo.toml",
+    platform_triples = [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-msvc",
+        "aarch64-unknown-linux-musl",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
+    ],
+)
+crate.annotation(
+    crate = "bindgen-cli",
+    gen_binaries = ["bindgen"],
+    rustc_flags = [
+        "-Ccodegen-units=1",
+        "-Cpanic=abort",
+        "-Cstrip=symbols",
+    ],
+    rustc_flags_select = {
+        "aarch64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],
+        "x86_64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],
+    },
+)
+crate.annotation(
+    crate = "clang-sys",
+    crate_features = ["static"],
+    gen_build_script = "off",
+    deps = ["@llvm-project//clang:libclang_static"],
+)
+use_repo(crate, "crates")
+
+inject_repo(crate, "llvm-project")

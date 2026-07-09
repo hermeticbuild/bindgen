@@ -18,6 +18,7 @@ archive_override(
         "https://github.com/ArchangelX360/hermetic-llvm/archive/ef1eb169508b7f0461463c442e0e100ef575a90a.tar.gz",
     ],
 )
+
 register_toolchains("@llvm//toolchain:all")
 
 # Make Windows SDK case aliases available to case-sensitive remote actions when
@@ -72,11 +73,6 @@ crate.from_cargo(
 crate.annotation(
     crate = "bindgen-cli",
     gen_binaries = ["bindgen"],
-    rustc_flags = [
-        "-Ccodegen-units=1",
-        "-Cpanic=abort",
-        "-Cstrip=symbols",
-    ],
     rustc_flags_select = {
         "aarch64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],
         "x86_64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],

@@ -21,6 +21,9 @@ common --@llvm//toolchain:bootstrap_stage=stage1_from_source
 common --features=static_link_msvcrt
 common --features=thin_lto
 common --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
+common --@rules_rust//rust/settings:extra_rustc_flag=-Ccodegen-units=1
+common --@rules_rust//rust/settings:extra_rustc_flag=-Cpanic=abort
+common --@rules_rust//rust/settings:extra_rustc_flag=-Cstrip=symbols
 
 common -c opt
 common --strip=always

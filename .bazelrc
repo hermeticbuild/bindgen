@@ -5,24 +5,26 @@ common --enable_platform_specific_config
 
 common:windows --host_platform=//:local_windows_platform
 
-common --incompatible_enable_cc_toolchain_resolution
-common --incompatible_strict_action_env
 common --sandbox_default_allow_network=false
+
+# Reduce warning spew
 common --copt=-w
 common --host_copt=-w
 
 common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 common --repo_env=BAZEL_MSVC_RUNTIME_VISUAL_STUDIO_EULA=1
 common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
-common --extra_toolchains=@llvm//toolchain:all
+
+# Needed for patches
 common --@llvm//toolchain:bootstrap_stage=stage1_from_source
-common --@llvm//config:experimental_stub_libgcc_s
+
 common --features=static_link_msvcrt
 common --features=thin_lto
 common --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
 
 common -c opt
 common --strip=always
+
 common --bes_results_url=https://app.buildbuddy.io/invocation/
 common --bes_backend=grpcs://remote.buildbuddy.io
 common --remote_cache=grpcs://remote.buildbuddy.io
@@ -36,5 +38,4 @@ common --grpc_keepalive_time=30s
 
 common:remote --remote_executor=grpcs://remote.buildbuddy.io
 common:remote --jobs=200
-common:remote --host_platform=//:remote_linux_platform
 common:remote --extra_execution_platforms=//:remote_linux_platform

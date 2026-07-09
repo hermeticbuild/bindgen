@@ -18,6 +18,7 @@ archive_override(
         "https://github.com/ArchangelX360/hermetic-llvm/archive/ef1eb169508b7f0461463c442e0e100ef575a90a.tar.gz",
     ],
 )
+register_toolchains("@llvm//toolchain:all")
 
 # Make Windows SDK case aliases available to case-sensitive remote actions when
 # repository setup runs on a case-insensitive filesystem.

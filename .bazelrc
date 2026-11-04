@@ -15,9 +15,7 @@ common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 common --repo_env=BAZEL_MSVC_RUNTIME_VISUAL_STUDIO_EULA=1
 common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
 
-# Needed for patches
-common --@llvm//toolchain:bootstrap_stage=stage1_from_source
-
+common --features=-dynamic_link_msvcrt
 common --features=static_link_msvcrt
 common --features=thin_lto
 common --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols

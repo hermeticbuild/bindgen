@@ -1,0 +1,77 @@
+# Backport PIC ownership from rules_rust 6503de22 (#4131), including the
+# equivalent distributed ThinLTO object/context selection in the current fork.
+# https://github.com/bazelbuild/rules_rust/pull/4131
+# Drop after adopting a rules_rust revision containing that fix.
+--- a/rust/private/rustc.bzl
++++ b/rust/private/rustc.bzl
+@@ -2463,6 +2463,13 @@
+         cc_toolchain,
+         feature_configuration,
+         interface_library,
++        use_pic = should_use_pic(
++            cc_toolchain = cc_toolchain,
++            feature_configuration = feature_configuration,
++            crate_type = crate_info.type,
++            compilation_mode = ctx.var["COMPILATION_MODE"],
++            toolchain = rust_toolchain,
++        ),
+         debug_context = debug_context,
+         lto_object = output_o if distributed_thin_lto else None,
+     )
+@@ -2646,6 +2653,7 @@
+         cc_toolchain,
+         feature_configuration,
+         interface_library,
++        use_pic,
+         debug_context = None,
+         lto_object = None):
+     """If the produced crate is suitable yield a CcInfo to allow for interop with cc rules
+@@ -2658,6 +2666,7 @@
+         cc_toolchain (CcToolchainInfo): The current `CcToolchainInfo`
+         feature_configuration (FeatureConfiguration): Feature configuration to be queried.
+         interface_library (File): Optional interface library for cdylib crates on Windows.
++        use_pic: (boolean): Whether the build should use PIC.
+         debug_context (CcDebugContextInfo): The current debug context.
+         lto_object (File): Optional full LLVM bitcode object for distributed ThinLTO.
+ 
+@@ -2678,14 +2687,13 @@
+ 
+     if crate_info.type == "staticlib":
+         if cc_toolchain:
++            kwargs = {"pic_static_library" if use_pic else "static_library": crate_info.output}
+             library_to_link = cc_common.create_library_to_link(
+                 actions = ctx.actions,
+                 feature_configuration = feature_configuration,
+                 cc_toolchain = cc_toolchain,
+-                static_library = crate_info.output,
+-                # TODO(hlopko): handle PIC/NOPIC correctly
+-                pic_static_library = crate_info.output,
+                 alwayslink = getattr(attr, "alwayslink", False),
++                **kwargs
+             )
+     elif crate_info.type in ("rlib", "lib"):
+         # bazel hard-codes a check for endswith((".a", ".pic.a",
+@@ -2706,20 +2714,13 @@
+                 actions = ctx.actions,
+                 feature_configuration = feature_configuration,
+                 cc_toolchain = cc_toolchain,
+-                static_library = dot_a,
+-                # TODO(hlopko): handle PIC/NOPIC correctly
+-                pic_static_library = dot_a,
+                 alwayslink = getattr(attr, "alwayslink", False),
+             )
++            library_to_link_kwargs["pic_static_library" if use_pic else "static_library"] = dot_a
+             if lto_object:
+-                library_to_link_kwargs.update({
+-                    "objects": [lto_object],
+-                    "pic_objects": [lto_object],
+-                    "lto_compilation_context": lto_compilation_context,
+-                    "pic_lto_compilation_context": lto_compilation_context,
+-                })
++                library_to_link_kwargs["pic_objects" if use_pic else "objects"] = [lto_object]
++                library_to_link_kwargs["pic_lto_compilation_context" if use_pic else "lto_compilation_context"] = lto_compilation_context
+ 
+-            # TODO(hlopko): handle PIC/NOPIC correctly
+             library_to_link = cc_common.create_library_to_link(**library_to_link_kwargs)
+     elif crate_info.type == "cdylib":
+         if cc_toolchain:

@@ -4,7 +4,7 @@ bazel_dep(name = "bazel_lib", version = "3.2.2")
 bazel_dep(name = "llvm", version = "0.8.11")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_cc", version = "0.2.20")
-bazel_dep(name = "rules_rs", version = "0.0.95")
+bazel_dep(name = "rules_rs", version = "0.2.1")
 bazel_dep(name = "tar.bzl", version = "0.10.4")
 
 # LLVM 23.1.2, matching the resource headers consumed by these prebuilts.
@@ -28,19 +28,22 @@ single_version_override(
     version = "0.2.0",
 )
 
-single_version_override(
+# Latest rules_rs, retaining the Rust 1.96 musl PIE and SDK casing fixes.
+archive_override(
     module_name = "rules_rs",
+    integrity = "sha256-99PJ8roSyrCiKE2PWzWXG0NNUkdoFsTmUN7lIvgSoiE=",
     patch_strip = 1,
-    patches = ["//patches:rules-rs-fixes.patch"],
-    version = "0.0.95",
+    patches = [
+        "//patches:rules-rs-fixes.patch",
+        "//patches:rules-rs-rules-rust-version.patch",
+    ],
+    strip_prefix = "rules_rs-c57a1599d0edcaa8f916212d4c019649b8f530a2",
+    urls = ["https://github.com/hermeticbuild/rules_rs/archive/c57a1599d0edcaa8f916212d4c019649b8f530a2.tar.gz"],
 )
 
 rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
 rules_rust.patch(
-    patches = [
-        "//patches:rules-rust-distributed-thin-lto-strip.patch",
-        "//patches:rules-rust-thin-lto-pic.patch",
-    ],
+    patches = ["//patches:rules-rust-distributed-thin-lto-strip.patch"],
     strip = 1,
 )
 use_repo(rules_rust, "rules_rust")
@@ -74,10 +77,14 @@ crate.from_cargo(
 crate.annotation(
     crate = "bindgen-cli",
     gen_binaries = ["bindgen"],
-    rustc_flags_select = {
-        "aarch64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],
-        "x86_64-pc-windows-msvc": ["-Ctarget-feature=+crt-static"],
-    },
+)
+crate.annotation_select(
+    crate = "bindgen-cli",
+    rustc_flags = ["-Ctarget-feature=+crt-static"],
+    triples = [
+        "aarch64-pc-windows-msvc",
+        "x86_64-pc-windows-msvc",
+    ],
 )
 crate.annotation(
     crate = "clang-sys",

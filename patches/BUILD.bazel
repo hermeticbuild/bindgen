@@ -1,6 +1,6 @@
 exports_files([
     "rules-rust-distributed-thin-lto-strip.patch",
-    "rules-rust-thin-lto-pic.patch",
     "rules-rs-fixes.patch",
+    "rules-rs-rules-rust-version.patch",
     "windows-support-remote-case-aliases.patch",
 ])

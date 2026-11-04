@@ -1,9 +1,9 @@
 --- a/rust/private/rustc.bzl
 +++ b/rust/private/rustc.bzl
-@@ -1684,6 +1684,52 @@
-         flags.extend(ctx.attr._extra_exec_rustc_flag[ExtraExecRustcFlagsInfo].extra_exec_rustc_flags)
- 
-     return flags
+@@ -1997,6 +1997,52 @@
+         elif not flag.startswith(("--json=", "--error-format=")):
+             query_flags.append(flag)
+     return query_flags
 +
 +def _strip_level_from_flags(flags, strip_level):
 +    """Returns the last rustc strip level in a list of command-line flags."""
@@ -53,7 +53,7 @@
  
  def setup_zself_profile(ctx, crate_info):
      """Sets up rustc self-profiling if enabled by zself_profile_events.
-@@ -2222,6 +2268,27 @@
+@@ -2589,6 +2635,27 @@
              additional_linker_outputs.append(dsym_folder)
              variables_extension["dsym_path"] = dsym_folder
  
@@ -81,7 +81,7 @@
          linking_outputs = cc_common.link(
              actions = ctx.actions,
              feature_configuration = feature_configuration,
-@@ -2230,11 +2297,36 @@
+@@ -2597,13 +2664,38 @@
              compilation_outputs = compilation_outputs,
              name = output_relative_to_package,
              stamp = attr.stamp,
@@ -90,6 +90,8 @@
              output_type = "executable" if crate_info.type == "bin" else "dynamic_library",
              additional_outputs = additional_linker_outputs,
              variables_extension = variables_extension,
+             # Lets thin_lto_linkstatic_tests_use_shared_nonlto_backends apply, as it does for cc_test.
+             test_only_target = cc_helper.is_test_target(ctx) or crate_info.is_test,
          )
 +
 +        if strip_option:

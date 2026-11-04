@@ -2,7 +2,7 @@
 
 Hermetic `bindgen` 0.72.1 executables for Linux, macOS, and Windows on x86-64
 and ARM64. Linux uses musl, Windows uses MSVC with the static CRT, and
-`libclang` is linked into every executable.
+LLVM 23.1.2 `libclang` is linked into every executable.
 
 ## Build
 

@@ -1,19 +1,19 @@
 module(name = "bindgen")
 
-bazel_dep(name = "bazel_lib", version = "3.2.2")
-bazel_dep(name = "llvm", version = "0.8.11")
+bazel_dep(name = "bazel_lib", version = "3.7.2")
+bazel_dep(name = "llvm", version = "0.8.26")
 bazel_dep(name = "platforms", version = "1.1.0")
-bazel_dep(name = "rules_cc", version = "0.2.20")
+bazel_dep(name = "rules_cc", version = "0.2.27")
 bazel_dep(name = "rules_rs", version = "0.2.1")
-bazel_dep(name = "tar.bzl", version = "0.10.4")
+bazel_dep(name = "tar.bzl", version = "0.10.9")
 
-# LLVM 23.1.2, matching the resource headers consumed by these prebuilts.
+# Current hermetic-llvm rules; the extension below selects the LLVM distribution.
 archive_override(
     module_name = "llvm",
-    integrity = "sha256-d1vS7IfVA4zYrWCynJPSOOGECtP5UYmChWi7aiC2k6c=",
-    strip_prefix = "hermetic-llvm-413655560cc6269a1bf4eaac5100fd96830948bd",
+    integrity = "sha256-5pIByuSlCgB/kMKYsb1qH6IPFrt75kDn4m56czrYWGU=",
+    strip_prefix = "hermetic-llvm-c04d527ee4cc2247c82232c1927984714ddb2146",
     urls = [
-        "https://github.com/hermeticbuild/hermetic-llvm/archive/413655560cc6269a1bf4eaac5100fd96830948bd.tar.gz",
+        "https://github.com/hermeticbuild/hermetic-llvm/archive/c04d527ee4cc2247c82232c1927984714ddb2146.tar.gz",
     ],
 )
 
@@ -25,7 +25,7 @@ single_version_override(
     module_name = "windows_support",
     patch_strip = 1,
     patches = ["//patches:windows-support-remote-case-aliases.patch"],
-    version = "0.2.0",
+    version = "0.4.1",
 )
 
 # Latest rules_rs, retaining the Rust 1.96 musl PIE and SDK casing fixes.
@@ -58,6 +58,7 @@ use_repo(toolchains, "default_rust_toolchains")
 register_toolchains("@default_rust_toolchains//:all")
 
 llvm = use_extension("@llvm//extensions:llvm.bzl", "llvm")
+llvm.version(llvm_version = "23.1.2")
 use_repo(llvm, "llvm-project")
 
 crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")

@@ -1,0 +1,43 @@
+name: Build release matrix
+
+on:
+  workflow_call:
+    secrets:
+      BUILDBUDDY_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Test release assembly
+        run: scripts/test_release.sh
+      - id: matrix
+        run: echo "matrix=$(scripts/release_matrix.sh)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Build and verify LLVM ${{ matrix.llvm }} archives
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
+          RELEASE_WORKSPACE: ${{ matrix.workspace }}
+        run: scripts/build_release.sh "$RELEASE_WORKSPACE"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bindgen-llvm${{ matrix.llvm }}
+          path: dist/variants/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

@@ -1,5 +1,7 @@
 bazel-*
 /dist/
+bindgen_llvm*.tar.zst
+SHA256_llvm*.txt
 /target
 /bindgen_darwin_amd64.tar.zst
 /bindgen_darwin_arm64.tar.zst

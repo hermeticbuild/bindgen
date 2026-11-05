@@ -1,4 +1,5 @@
 exports_files([
+    "bindgen-recursive-template-union.patch",
     "rules-rust-distributed-thin-lto-strip.patch",
     "rules-rs-fixes.patch",
     "rules-rs-rules-rust-version.patch",

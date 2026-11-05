@@ -8,4 +8,4 @@ publish = false
 path = "empty.rs"
 
 [build-dependencies]
-bindgen-cli = { version = "=0.72.1", default-features = false, features = ["static"] }
+bindgen-cli = { version = "0.73.2", default-features = false, features = ["static"] }

@@ -1,8 +1,11 @@
 # bindgen prebuilts
 
-Hermetic `bindgen` 0.72.1 executables for Linux, macOS, and Windows on x86-64
+Hermetic `bindgen` 0.73.2 executables for Linux, macOS, and Windows on x86-64
 and ARM64. Linux uses musl, Windows uses MSVC with the static CRT, and
 LLVM 23.1.2 `libclang` is linked into every executable.
+
+The `bindgen` crate carries [upstream PR #3536](https://github.com/rust-lang/rust-bindgen/pull/3536),
+which prevents recursive layout computation for uninstantiated template unions.
 
 ## Build
 
@@ -23,5 +26,5 @@ available, `--no-include-path-detection`.
 ## Release
 
 ```sh
-./release.sh v0.72.1-1
+./release.sh v0.0.4
 ```

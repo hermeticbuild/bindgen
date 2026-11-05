@@ -75,6 +75,11 @@ crate.from_cargo(
     ],
 )
 crate.annotation(
+    crate = "bindgen",
+    patches = ["//patches:bindgen-recursive-template-union.patch"],
+    patch_args = ["-p1"],
+)
+crate.annotation(
     crate = "bindgen-cli",
     gen_binaries = ["bindgen"],
 )

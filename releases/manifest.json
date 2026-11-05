@@ -1,0 +1,7 @@
+{
+  "bindgen_version": "0.72.1",
+  "variants": [
+    { "workspace": ".", "llvm_version": "23.1.2" },
+    { "workspace": "releases/llvm22", "llvm_version": "22.1.8" }
+  ]
+}

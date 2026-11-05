@@ -1,0 +1,98 @@
+module(name = "bindgen")
+
+bazel_dep(name = "bazel_lib", version = "3.7.2")
+bazel_dep(name = "llvm", version = "0.8.26")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_cc", version = "0.2.27")
+bazel_dep(name = "rules_rs", version = "0.2.1")
+bazel_dep(name = "tar.bzl", version = "0.10.9")
+
+# Current hermetic-llvm rules; the extension below selects the LLVM distribution.
+archive_override(
+    module_name = "llvm",
+    integrity = "sha256-5pIByuSlCgB/kMKYsb1qH6IPFrt75kDn4m56czrYWGU=",
+    strip_prefix = "hermetic-llvm-c04d527ee4cc2247c82232c1927984714ddb2146",
+    urls = [
+        "https://github.com/hermeticbuild/hermetic-llvm/archive/c04d527ee4cc2247c82232c1927984714ddb2146.tar.gz",
+    ],
+)
+
+register_toolchains("@llvm//toolchain:all")
+
+# Make Windows SDK case aliases available to case-sensitive remote actions when
+# repository setup runs on a case-insensitive filesystem.
+single_version_override(
+    module_name = "windows_support",
+    patch_strip = 1,
+    patches = ["//patches:windows-support-remote-case-aliases.patch"],
+    version = "0.4.1",
+)
+
+# Latest rules_rs, retaining the Rust 1.96 musl PIE and SDK casing fixes.
+archive_override(
+    module_name = "rules_rs",
+    integrity = "sha256-99PJ8roSyrCiKE2PWzWXG0NNUkdoFsTmUN7lIvgSoiE=",
+    patch_strip = 1,
+    patches = [
+        "//patches:rules-rs-fixes.patch",
+        "//patches:rules-rs-rules-rust-version.patch",
+    ],
+    strip_prefix = "rules_rs-c57a1599d0edcaa8f916212d4c019649b8f530a2",
+    urls = ["https://github.com/hermeticbuild/rules_rs/archive/c57a1599d0edcaa8f916212d4c019649b8f530a2.tar.gz"],
+)
+
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+rules_rust.patch(
+    patches = ["//patches:rules-rust-distributed-thin-lto-strip.patch"],
+    strip = 1,
+)
+use_repo(rules_rust, "rules_rust")
+
+toolchains = use_extension("@rules_rs//rs/toolchains:module_extension.bzl", "toolchains")
+toolchains.toolchain(
+    edition = "2024",
+    version = "1.96.1",
+)
+use_repo(toolchains, "default_rust_toolchains")
+
+register_toolchains("@default_rust_toolchains//:all")
+
+llvm = use_extension("@llvm//extensions:llvm.bzl", "llvm")
+llvm.version(llvm_version = "22.1.8")
+use_repo(llvm, "llvm-project")
+
+crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+crate.from_cargo(
+    cargo_lock = "//:Cargo.lock",
+    cargo_toml = "//:Cargo.toml",
+    platform_triples = [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-msvc",
+        "aarch64-unknown-linux-musl",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
+    ],
+)
+crate.annotation(
+    crate = "bindgen-cli",
+    gen_binaries = ["bindgen"],
+)
+crate.annotation_select(
+    crate = "bindgen-cli",
+    rustc_flags = ["-Ctarget-feature=+crt-static"],
+    triples = [
+        "aarch64-pc-windows-msvc",
+        "x86_64-pc-windows-msvc",
+    ],
+)
+crate.annotation(
+    crate = "clang-sys",
+    crate_features = ["static"],
+    gen_build_script = "off",
+    deps = ["@llvm-project//clang:libclang_static"],
+)
+use_repo(crate, "crates")
+
+inject_repo(crate, "llvm-project")

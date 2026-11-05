@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+llvm_version="${1:?usage: build_release.sh LLVM_VERSION}"
+grep -Fq "llvm.version(llvm_version = \"$llvm_version\")" MODULE.bazel
+
 bazel_flags=(--config=remote --lockfile_mode=error)
 if [[ -n "${BUILDBUDDY_API_KEY:-}" ]]; then
   bazel_flags+=(
@@ -20,19 +23,19 @@ copy_out() {
   cp -f "$source" "$2"
 }
 
-copy_out //:bindgen_darwin_amd64 bindgen_darwin_amd64.tar.zst
-copy_out //:bindgen_darwin_arm64 bindgen_darwin_arm64.tar.zst
-copy_out //:bindgen_linux_amd64 bindgen_linux_amd64.tar.zst
-copy_out //:bindgen_linux_arm64 bindgen_linux_arm64.tar.zst
-copy_out //:bindgen_windows_amd64 bindgen_windows_amd64.tar.zst
-copy_out //:bindgen_windows_arm64 bindgen_windows_arm64.tar.zst
+copy_out //:bindgen_darwin_amd64 "bindgen_llvm${llvm_version}_darwin_amd64.tar.zst"
+copy_out //:bindgen_darwin_arm64 "bindgen_llvm${llvm_version}_darwin_arm64.tar.zst"
+copy_out //:bindgen_linux_amd64 "bindgen_llvm${llvm_version}_linux_amd64.tar.zst"
+copy_out //:bindgen_linux_arm64 "bindgen_llvm${llvm_version}_linux_arm64.tar.zst"
+copy_out //:bindgen_windows_amd64 "bindgen_llvm${llvm_version}_windows_amd64.tar.zst"
+copy_out //:bindgen_windows_arm64 "bindgen_llvm${llvm_version}_windows_arm64.tar.zst"
 
 artifacts=(
-  bindgen_darwin_amd64.tar.zst
-  bindgen_darwin_arm64.tar.zst
-  bindgen_linux_amd64.tar.zst
-  bindgen_linux_arm64.tar.zst
-  bindgen_windows_amd64.tar.zst
-  bindgen_windows_arm64.tar.zst
+  "bindgen_llvm${llvm_version}_darwin_amd64.tar.zst"
+  "bindgen_llvm${llvm_version}_darwin_arm64.tar.zst"
+  "bindgen_llvm${llvm_version}_linux_amd64.tar.zst"
+  "bindgen_llvm${llvm_version}_linux_arm64.tar.zst"
+  "bindgen_llvm${llvm_version}_windows_amd64.tar.zst"
+  "bindgen_llvm${llvm_version}_windows_arm64.tar.zst"
 )
-LC_ALL=C shasum -a 256 "${artifacts[@]}" > SHA256.txt
+LC_ALL=C shasum -a 256 "${artifacts[@]}" > "SHA256_llvm${llvm_version}.txt"
